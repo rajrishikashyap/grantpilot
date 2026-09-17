@@ -5,10 +5,11 @@ data/clean/
 *.xml
 
 # Model artifacts, trained on Colab, downloaded locally
-models/
+/models/
 *.pt
 *.pkl
 *.safetensors
+*.joblib
 
 # Vector store
 chroma_db/
