@@ -1,0 +1,194 @@
+{
+  "CS2-IA": {
+    "median_log": 5.8357,
+    "mad_log": 0.2433,
+    "n": 178,
+    "median_eur": 684972
+  },
+  "CS2-RIA": {
+    "median_log": 5.818,
+    "mad_log": 0.238,
+    "n": 110,
+    "median_eur": 657655
+  },
+  "CSA": {
+    "median_log": 5.954,
+    "mad_log": 0.5996,
+    "n": 2857,
+    "median_eur": 899600
+  },
+  "CSA-LSP": {
+    "median_log": 5.0169,
+    "mad_log": 0.0539,
+    "n": 35,
+    "median_eur": 103975
+  },
+  "ERA-NET-Cofund": {
+    "median_log": 6.7782,
+    "mad_log": 0.124,
+    "n": 77,
+    "median_eur": 6000000
+  },
+  "ERC-ADG": {
+    "median_log": 6.3962,
+    "mad_log": 0.05,
+    "n": 1571,
+    "median_eur": 2490000
+  },
+  "ERC-COG": {
+    "median_log": 6.3003,
+    "mad_log": 0.05,
+    "n": 2237,
+    "median_eur": 1996581
+  },
+  "ERC-POC": {
+    "median_log": 5.1761,
+    "mad_log": 0.05,
+    "n": 964,
+    "median_eur": 150000
+  },
+  "ERC-POC-LS": {
+    "median_log": 5.1761,
+    "mad_log": 0.05,
+    "n": 158,
+    "median_eur": 150000
+  },
+  "ERC-STG": {
+    "median_log": 6.1758,
+    "mad_log": 0.05,
+    "n": 2749,
+    "median_eur": 1499070
+  },
+  "ERC-SyG": {
+    "median_log": 6.9989,
+    "mad_log": 0.0613,
+    "n": 99,
+    "median_eur": 9975273
+  },
+  "FCH2-RIA": {
+    "median_log": 6.4027,
+    "mad_log": 0.1163,
+    "n": 37,
+    "median_eur": 2527710
+  },
+  "IA": {
+    "median_log": 6.6976,
+    "mad_log": 0.3787,
+    "n": 2061,
+    "median_eur": 4984260
+  },
+  "MSCA-COFUND": {
+    "median_log": 6.3389,
+    "mad_log": 0.2852,
+    "n": 212,
+    "median_eur": 2182164
+  },
+  "MSCA-IF": {
+    "median_log": 5.2732,
+    "mad_log": 0.0699,
+    "n": 5004,
+    "median_eur": 187572
+  },
+  "MSCA-IF-EF-CAR": {
+    "median_log": 5.2635,
+    "mad_log": 0.05,
+    "n": 144,
+    "median_eur": 183455
+  },
+  "MSCA-IF-EF-RI": {
+    "median_log": 5.2426,
+    "mad_log": 0.05,
+    "n": 338,
+    "median_eur": 174806
+  },
+  "MSCA-IF-EF-SE": {
+    "median_log": 5.241,
+    "mad_log": 0.05,
+    "n": 122,
+    "median_eur": 174167
+  },
+  "MSCA-IF-EF-ST": {
+    "median_log": 5.2586,
+    "mad_log": 0.05,
+    "n": 3762,
+    "median_eur": 181390
+  },
+  "MSCA-IF-GF": {
+    "median_log": 5.3879,
+    "mad_log": 0.05,
+    "n": 404,
+    "median_eur": 244269
+  },
+  "MSCA-ITN": {
+    "median_log": 6.585,
+    "mad_log": 0.05,
+    "n": 638,
+    "median_eur": 3845729
+  },
+  "MSCA-ITN-EID": {
+    "median_log": 6.1029,
+    "mad_log": 0.1649,
+    "n": 67,
+    "median_eur": 1267467
+  },
+  "MSCA-ITN-ETN": {
+    "median_log": 6.5803,
+    "mad_log": 0.05,
+    "n": 303,
+    "median_eur": 3804639
+  },
+  "MSCA-RISE": {
+    "median_log": 5.9228,
+    "mad_log": 0.2383,
+    "n": 580,
+    "median_eur": 837200
+  },
+  "PCP": {
+    "median_log": 6.7024,
+    "mad_log": 0.173,
+    "n": 33,
+    "median_eur": 5040000
+  },
+  "RIA": {
+    "median_log": 6.6481,
+    "mad_log": 0.2275,
+    "n": 4434,
+    "median_eur": 4447524
+  },
+  "SESAR-RIA": {
+    "median_log": 5.9718,
+    "mad_log": 0.2875,
+    "n": 53,
+    "median_eur": 937130
+  },
+  "SME": {
+    "median_log": 6.2744,
+    "mad_log": 0.1773,
+    "n": 85,
+    "median_eur": 1881250
+  },
+  "SME-1": {
+    "median_log": 4.699,
+    "mad_log": 0.05,
+    "n": 4190,
+    "median_eur": 50000
+  },
+  "SME-2": {
+    "median_log": 6.2303,
+    "mad_log": 0.1797,
+    "n": 1382,
+    "median_eur": 1699253
+  },
+  "SME-2b": {
+    "median_log": 6.2392,
+    "mad_log": 0.1843,
+    "n": 30,
+    "median_eur": 1734483
+  },
+  "Shift2Rail-RIA": {
+    "median_log": 6.0963,
+    "mad_log": 0.3072,
+    "n": 34,
+    "median_eur": 1248334
+  }
+}
