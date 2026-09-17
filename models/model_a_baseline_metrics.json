@@ -1,0 +1,8 @@
+{
+  "model": "logreg_tfidf_baseline",
+  "roc_auc": 0.9132,
+  "pr_auc": 0.3687,
+  "pr_baseline": 0.0657,
+  "n_train": 25813,
+  "n_test": 6454
+}
