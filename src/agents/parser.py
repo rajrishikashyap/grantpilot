@@ -21,9 +21,14 @@ or:
 
 Real 3B models break this contract constantly: extra prose, markdown code
 fences around the JSON, single quotes instead of double, a trailing comma,
-both an Action and a Final Answer in the same turn. A brittle parser turns
-every one of those into a crash. So this parser is deliberately defensive,
-and every branch returns something the loop can act on rather than throwing.
+both an Action and a Final Answer in the same turn, and (seen in 3C) the
+whole call packed into one JSON object on the Action line:
+
+    Action: {"tool": "score_budget", "action_input": {...}}
+
+A brittle parser turns every one of those into a crash or a dead loop. So
+this parser is deliberately defensive, and every branch returns something
+the loop can act on rather than throwing.
 """
 
 import re
@@ -104,6 +109,29 @@ def _parse_json_loose(raw):
     return None, f"could not parse Action Input as JSON: {raw!r}"
 
 
+def _salvage_nested_action(action_text):
+    """
+    Handle the alternate shape where the model packs the whole call into one
+    JSON object on the Action line, e.g.:
+        {"tool": "score_budget", "action_input": {"scheme": "ERC-STG", ...}}
+    or {"name": "...", "arguments": {...}} and similar variants.
+
+    Returns (tool_name, args_dict) if it can be salvaged, else None.
+    """
+    obj, err = _parse_json_loose(action_text)
+    if err is not None or not isinstance(obj, dict):
+        return None
+
+    # Accept the common key spellings different prompting styles produce.
+    name = obj.get("tool") or obj.get("name") or obj.get("action") or obj.get("tool_name")
+    args = (obj.get("action_input") or obj.get("arguments")
+            or obj.get("input") or obj.get("args") or obj.get("parameters"))
+
+    if isinstance(name, str) and isinstance(args, dict):
+        return name.strip(), args
+    return None
+
+
 def parse(text):
     """
     Parse one raw model completion into a ParsedStep. This function never
@@ -122,8 +150,17 @@ def parse(text):
     # Otherwise look for an action.
     action = _extract_after("Action", text)
     if action is not None and action != "":
-        # Clean common noise: backticks, quotes around the tool name.
         action = action.strip().strip("`").strip('"').strip("'")
+
+        # NEW (3C): if the model packed the whole call into one JSON object on
+        # the Action line, unpack it instead of treating the JSON blob as a
+        # tool name (which used to cause an 'unknown tool' dead loop).
+        if action.startswith("{"):
+            salvaged = _salvage_nested_action(action)
+            if salvaged is not None:
+                tool_name, tool_args = salvaged
+                return ParsedStep(thought=thought, action=tool_name, action_input=tool_args)
+
         raw_input = _extract_after("Action Input", text)
         args, err = _parse_json_loose(raw_input)
         if err is not None:
@@ -156,6 +193,8 @@ if __name__ == "__main__":
         "Thought: look it up.\nAction: city_lookup\nAction Input: {'city': 'Zephyria'}",
         # JSON wrapped in a code fence
         'Action: calculator\nAction Input: ```json\n{"expression": "9*9"}\n```',
+        # nested action JSON on one line (the 3C case-3 failure)
+        'Thought: check it.\nAction: {"tool": "score_budget", "action_input": {"scheme": "ERC-STG", "ec_contribution": 1500000}}',
         # final answer
         "Thought: I now know the result.\nFinal Answer: The population is 812000.",
         # garbage

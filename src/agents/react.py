@@ -19,17 +19,27 @@ The loop:
                           model gets one more try to fix its format).
   5. Stop after max_steps no matter what, so a confused model cannot spin
      forever. The step cap is the agent's seatbelt.
+
+3C ADDITION: run_agent now takes an optional `role`. That is the ONLY thing
+that turns this generic loop into a specialised agent (a Budget reviewer, a
+Reviewer, and so on): a different opening instruction in the system prompt.
+The loop itself does not change. When role is not given, it falls back to the
+default and behaves exactly as it did for the 3A toy test.
 """
 
 from .llm import call_llm
 from .parser import parse
 
 
+# The default persona, used when no role is passed (keeps the 3A toy test
+# working unchanged).
+DEFAULT_ROLE = "You are a careful assistant that solves problems step by step using tools."
+
+
 # The system prompt. This teaches the model the ReAct contract. Everything
-# the model knows about how to behave is in here plus the tool list. Note
-# the explicit format block: small models need the shape spelled out and an
-# example, or they improvise and the parser has nothing to grab.
-SYSTEM_PROMPT = """You are a careful assistant that solves problems step by step using tools.
+# the model knows about how to behave is in here plus the tool list. The
+# {role} slot at the top is what each agent customises.
+SYSTEM_PROMPT = """{role}
 
 You have access to these tools:
 {tool_list}
@@ -57,16 +67,17 @@ Question: {question}
 {scratchpad}"""
 
 
-def _build_prompt(question, scratchpad, registry):
+def _build_prompt(question, scratchpad, registry, role):
     from .tools import render_tools
     return SYSTEM_PROMPT.format(
+        role=role,
         tool_list=render_tools(registry),
         question=question,
         scratchpad=scratchpad,
     )
 
 
-def run_agent(question, registry, max_steps=6, verbose=True):
+def run_agent(question, registry, max_steps=6, verbose=True, role=None):
     """
     Run the ReAct loop until the model gives a Final Answer or we hit
     max_steps.
@@ -75,20 +86,30 @@ def run_agent(question, registry, max_steps=6, verbose=True):
     registry  : dict {name: Tool}, the tools the agent may use.
     max_steps : the seatbelt. 6 is plenty for the toy tests.
     verbose   : print every beat so you can watch reason/act/observe happen.
+    role      : optional persona/system instruction for a specialised agent.
+                When None, the default generic assistant role is used.
 
     Returns the final answer string, or a give-up message if the cap is hit.
     """
+    if role is None:
+        role = DEFAULT_ROLE
+
     # The scratchpad is the agent's working memory: the running transcript
     # of its own Thoughts/Actions and the Observations we fed back. It is
     # what makes step N aware of what happened in step N-1. This is the
     # entire "memory" of a ReAct agent, nothing more.
     scratchpad = ""
 
+    # Loop guard. At temperature 0 the model is deterministic, so once it
+    # gets stuck it emits the SAME output every step until the cap. We detect
+    # an identical repeat and stop immediately instead of burning every step.
+    prev_raw = None
+
     for step in range(1, max_steps + 1):
         if verbose:
             print(f"\n{'='*60}\nSTEP {step}\n{'='*60}")
 
-        prompt = _build_prompt(question, scratchpad, registry)
+        prompt = _build_prompt(question, scratchpad, registry, role)
 
         # Stop the model the instant it tries to write an Observation, so
         # the tool result comes from OUR code, never the model's imagination.
@@ -97,6 +118,18 @@ def run_agent(question, registry, max_steps=6, verbose=True):
         if verbose:
             print("MODEL OUTPUT:")
             print(raw.rstrip())
+
+        # If this step is byte-for-byte the previous one, we are in a loop
+        # the error feedback did not break. Bail out with an honest message
+        # rather than repeating it up to the step cap.
+        if prev_raw is not None and raw.strip() == prev_raw.strip():
+            if verbose:
+                print("\n>>> Identical repeated output detected, stopping to avoid a loop.")
+            return (
+                "[Agent stopped: it repeated the same step without making progress. "
+                "The model likely could not fit its intent to the tool format.]"
+            )
+        prev_raw = raw
 
         step_result = parse(raw)
 
@@ -120,10 +153,14 @@ def run_agent(question, registry, max_steps=6, verbose=True):
         tool_args = step_result.action_input
 
         if tool_name not in registry:
-            # It asked for a tool that does not exist. Tell it so.
+            # It asked for a tool that does not exist. Tell it so, and show
+            # the exact format so it can correct itself instead of repeating.
             observation = (
                 f"Error: unknown tool '{tool_name}'. "
-                f"Available tools: {', '.join(registry.keys())}."
+                f"Available tools: {', '.join(registry.keys())}. "
+                "Use exactly this format on two lines:\n"
+                "Action: <tool name>\n"
+                'Action Input: {"key": "value"}'
             )
         elif step_result.error is not None:
             # Tool name was fine but the Action Input would not parse.
