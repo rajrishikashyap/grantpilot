@@ -19,7 +19,6 @@ Contract, confirmed by introspecting the fitted pipeline (not guessed):
   OneHotEncoder handle_unknown='ignore', so an unseen fundingScheme is safe.
 
 Framing kept from Phase 2: this is POST-AWARD risk, not the award decision.
-We report it as risk and never claim it predicts whether a grant is funded.
 """
 
 import numpy as np
@@ -29,14 +28,10 @@ import joblib
 
 MODEL_PATH = Path("models/model_a_baseline.joblib")
 
-# Exact input columns, in the order the pipeline expects.
 INPUT_COLS = [
     "ecMaxContribution", "totalCost", "consortiumSize", "numCountries",
     "numSME", "numHES", "numREC", "numPRC", "numPUB", "fundingScheme", "objective",
 ]
-# Dataset base failure rate (from Model A metrics, pr_baseline). Used to judge
-# whether a given risk is high or low RELATIVE to the population, since the
-# absolute number is small for almost everything (only ~6.6% ever fail).
 BASE_FAILURE_RATE = 0.066
 
 _pipe = None
@@ -52,8 +47,6 @@ def _load():
 
 
 def _log_money(v):
-    """Natural-log a euro amount, matching how the model was trained. None or a
-    non-positive value becomes NaN, which the pipeline's imputer then fills."""
     if v is None:
         return np.nan
     v = float(v)
@@ -63,10 +56,8 @@ def _log_money(v):
 def _build_frame(objective, fundingScheme, ecMaxContribution=None, totalCost=None,
                  consortiumSize=None, numCountries=None, numSME=None, numHES=None,
                  numREC=None, numPRC=None, numPUB=None):
-    """Build the exact one-row frame the pipeline expects."""
     def _num(v):
         return np.nan if v is None else float(v)
-
     row = {
         "ecMaxContribution": _log_money(ecMaxContribution),
         "totalCost": _log_money(totalCost),
@@ -84,12 +75,11 @@ def _build_frame(objective, fundingScheme, ecMaxContribution=None, totalCost=Non
 
 
 def score_proposal(objective, fundingScheme, **numeric):
-    """Return Model A's post-award failure risk for one proposal."""
     pipe = _load()
     df = _build_frame(objective, fundingScheme, **numeric)
     risk = float(pipe.predict_proba(df)[0, 1])
     return {
-        "risk": risk,                                 # P(TERMINATED)
+        "risk": risk,
         "base_rate": BASE_FAILURE_RATE,
         "relative_to_base": risk / BASE_FAILURE_RATE,
         "predicted_label": int(risk >= 0.5),
@@ -97,9 +87,6 @@ def score_proposal(objective, fundingScheme, **numeric):
 
 
 def _clean_name(raw):
-    """Turn a transformed feature name into something a human reads.
-    'text__quantum' -> 'word:quantum'; 'cat__fundingScheme_RIA' -> 'scheme:RIA';
-    'num__ecMaxContribution' -> 'ecMaxContribution'."""
     if raw.startswith("text__"):
         return f"word:{raw[len('text__'):]}"
     if raw.startswith("cat__fundingScheme_"):
@@ -111,50 +98,71 @@ def _clean_name(raw):
     return raw
 
 
-def explain_proposal(objective, fundingScheme, top_k=8, **numeric):
-    """
-    Explain one prediction.
-
-    The model is linear, so the SHAP value of feature i is
-    coef_i * (x_i - E[x_i]). With an empty-proposal / average-budget baseline
-    (E[x_i] = 0 in the transformed space), that is exactly coef_i * x_i, which
-    we compute here in closed form: no sampling, no approximation. Positive
-    contributions push the prediction toward failure (risk); negative
-    contributions push toward success.
-    """
+def _contributions(objective, fundingScheme, **numeric):
+    """Shared core: return (feature_names, per-feature contribution, risk).
+    Contribution i = coef_i * x_i (exact linear SHAP with a zero baseline)."""
     pipe = _load()
     pre = pipe.named_steps["pre"]
     clf = pipe.named_steps["clf"]
-
     df = _build_frame(objective, fundingScheme, **numeric)
     x = pre.transform(df)
     x = x.toarray()[0] if hasattr(x, "toarray") else np.asarray(x)[0]
     names = pre.get_feature_names_out()
-    contrib = clf.coef_[0] * x     # exact linear SHAP with a zero baseline
+    contrib = clf.coef_[0] * x
+    risk = float(pipe.predict_proba(df)[0, 1])
+    return names, contrib, risk
 
+
+def explain_proposal(objective, fundingScheme, top_k=8, **numeric):
+    """
+    Explain one prediction. The model is linear, so the SHAP value of feature i
+    is coef_i * (x_i - E[x_i]); with an empty-proposal baseline this is exactly
+    coef_i * x_i, computed here in closed form. Positive pushes toward failure.
+    """
+    names, contrib, risk = _contributions(objective, fundingScheme, **numeric)
     order = np.argsort(contrib)
     top_protective = [(_clean_name(names[i]), float(contrib[i]))
                       for i in order[:top_k] if contrib[i] < 0]
     top_risk = [(_clean_name(names[i]), float(contrib[i]))
                 for i in order[::-1][:top_k] if contrib[i] > 0]
+    return {"risk": risk, "top_risk_drivers": top_risk,
+            "top_protective_drivers": top_protective}
 
-    risk = float(pipe.predict_proba(df)[0, 1])
-    return {
-        "risk": risk,
-        "top_risk_drivers": top_risk,
-        "top_protective_drivers": top_protective,
-    }
+
+def text_risk(objective, fundingScheme, top_k=8, **numeric):
+    """
+    Marginal risk from the WORDING, on the probability scale:
+
+        text_risk = risk(with this objective) - risk(with an EMPTY objective),
+
+    holding scheme and numeric features fixed. This is the honest, length-fair
+    replacement for an earlier sum-of-contributions signal (which grew simply
+    by writing more). It answers "how many points of failure probability does
+    the wording add", is bounded, and does not reward padding. Also returns the
+    top risk-raising words so the reviser knows what to reframe.
+
+    Returns {"text_risk", "risk_text", "risk_empty", "risk_words"}.
+    """
+    pipe = _load()
+    risk_text = float(pipe.predict_proba(
+        _build_frame(objective, fundingScheme, **numeric))[0, 1])
+    risk_empty = float(pipe.predict_proba(
+        _build_frame("", fundingScheme, **numeric))[0, 1])
+
+    names, contrib, _ = _contributions(objective, fundingScheme, **numeric)
+    text_idx = [i for i, n in enumerate(names)
+                if n.startswith("text__") and contrib[i] > 0]
+    text_idx.sort(key=lambda i: contrib[i], reverse=True)
+    risk_words = [(names[i][len("text__"):], float(contrib[i]))
+                  for i in text_idx[:top_k]]
+
+    return {"text_risk": risk_text - risk_empty, "risk_text": risk_text,
+            "risk_empty": risk_empty, "risk_words": risk_words}
 
 
 if __name__ == "__main__":
-    # Direct check, no agent. Run: python -m src.models.model_a_infer
     obj = ("This project develops an AI platform for early cancer detection from "
-           "medical imaging, validated across three hospitals, with an open dataset "
-           "and clinical trial protocol.")
+           "medical imaging, validated across three hospitals.")
     print(score_proposal(obj, "RIA", ecMaxContribution=5_000_000, totalCost=6_000_000,
                          consortiumSize=8, numCountries=5))
-    exp = explain_proposal(obj, "RIA", ecMaxContribution=5_000_000, totalCost=6_000_000,
-                           consortiumSize=8, numCountries=5, top_k=6)
-    print("risk:", exp["risk"])
-    print("risk drivers:", exp["top_risk_drivers"])
-    print("protective:", exp["top_protective_drivers"])
+    print(text_risk(obj, "RIA", ecMaxContribution=5_000_000, consortiumSize=8, top_k=6))
