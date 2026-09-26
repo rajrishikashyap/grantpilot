@@ -21,14 +21,15 @@ or:
 
 Real 3B models break this contract constantly: extra prose, markdown code
 fences around the JSON, single quotes instead of double, a trailing comma,
-both an Action and a Final Answer in the same turn, and (seen in 3C) the
-whole call packed into one JSON object on the Action line:
+both an Action and a Final Answer in the same turn, the whole call packed
+into one JSON object on the Action line:
 
     Action: {"tool": "score_budget", "action_input": {...}}
 
-A brittle parser turns every one of those into a crash or a dead loop. So
-this parser is deliberately defensive, and every branch returns something
-the loop can act on rather than throwing.
+and a duplicated "Final Answer:" prefix where the real content follows only
+the last one. A brittle parser turns every one of those into a crash or a
+dead loop. So this parser is deliberately defensive, and every branch returns
+something the loop can act on rather than throwing.
 """
 
 import re
@@ -71,6 +72,24 @@ def _extract_after(label, text):
     if match:
         return match.group(1).strip()
     return None
+
+
+def _extract_final_answer(text):
+    """
+    Return the text after the LAST 'Final Answer:' to the end of the string,
+    or None if there is no final answer.
+
+    Why the LAST one: a final answer is terminal, and small models sometimes
+    emit a duplicated 'Final Answer:' prefix (an empty one, then a stray
+    Thought, then the real 'Final Answer:' with the actual content). Taking
+    everything after the last occurrence captures the real content instead of
+    the empty or garbage segment after the first.
+    """
+    matches = list(re.finditer(r"Final\s*Answer\s*:", text, re.IGNORECASE))
+    if not matches:
+        return None
+    final = text[matches[-1].end():].strip()
+    return final or None
 
 
 def _parse_json_loose(raw):
@@ -124,7 +143,7 @@ def _salvage_nested_action(action_text):
 
     # Accept the common key spellings different prompting styles produce.
     name = obj.get("tool") or obj.get("name") or obj.get("action") or obj.get("tool_name")
-    args = (obj.get("action_input") or obj.get("arguments")
+    args = (obj.get("action_input") or obj.get("tool_input") or obj.get("arguments")
             or obj.get("input") or obj.get("args") or obj.get("parameters"))
 
     if isinstance(name, str) and isinstance(args, dict):
@@ -142,9 +161,11 @@ def parse(text):
 
     # Final Answer wins if present. We check it first because a well-behaved
     # model that is finished should not also be asking for a tool, and if it
-    # confusingly does both, treating it as finished is the safe choice.
-    final = _extract_after("Final Answer", text)
-    if final is not None and final != "":
+    # confusingly does both, treating it as finished is the safe choice. We
+    # take the content after the LAST 'Final Answer:' so a duplicated prefix
+    # does not make us capture an empty or stray-Thought segment.
+    final = _extract_final_answer(text)
+    if final is not None:
         return ParsedStep(thought=thought, is_final=True, final_answer=final)
 
     # Otherwise look for an action.
@@ -152,9 +173,9 @@ def parse(text):
     if action is not None and action != "":
         action = action.strip().strip("`").strip('"').strip("'")
 
-        # NEW (3C): if the model packed the whole call into one JSON object on
-        # the Action line, unpack it instead of treating the JSON blob as a
-        # tool name (which used to cause an 'unknown tool' dead loop).
+        # If the model packed the whole call into one JSON object on the Action
+        # line, unpack it instead of treating the JSON blob as a tool name
+        # (which used to cause an 'unknown tool' dead loop).
         if action.startswith("{"):
             salvaged = _salvage_nested_action(action)
             if salvaged is not None:
@@ -193,10 +214,14 @@ if __name__ == "__main__":
         "Thought: look it up.\nAction: city_lookup\nAction Input: {'city': 'Zephyria'}",
         # JSON wrapped in a code fence
         'Action: calculator\nAction Input: ```json\n{"expression": "9*9"}\n```',
-        # nested action JSON on one line (the 3C case-3 failure)
+        # nested action JSON on one line, action_input spelling
         'Thought: check it.\nAction: {"tool": "score_budget", "action_input": {"scheme": "ERC-STG", "ec_contribution": 1500000}}',
+        # nested action JSON on one line, tool_input spelling
+        'Thought: search.\nAction: {"tool": "search_grants", "tool_input": {"query": "drone crop disease", "k": 5}}',
         # final answer
         "Thought: I now know the result.\nFinal Answer: The population is 812000.",
+        # DUPLICATED Final Answer prefix: real content follows the LAST one
+        "Thought: draft it.\nFinal Answer: \nThought: draft it.\nFinal Answer: \nConcept: the real draft is here.",
         # garbage
         "I think the answer is probably around forty-something.",
     ]
