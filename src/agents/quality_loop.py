@@ -123,13 +123,29 @@ def _revise_for_quality(idea, scheme, draft, gaps):
     return _strip_dashes(raw.strip())
 
 
+def _dedupe_section_headers(text):
+    """Keep only the first 'Concept:' and first 'Objectives:' header line; a 3B
+    reviser sometimes repeats them, which looks sloppy in the UI. Removing the
+    duplicate header leaves the numbered objectives contiguous."""
+    seen = set()
+    out = []
+    for line in (text or "").splitlines():
+        key = line.strip().rstrip(":").lower()
+        if key in ("concept", "objectives"):
+            if key in seen:
+                continue
+            seen.add(key)
+        out.append(line)
+    return "\n".join(out)
+
+
 def improve_draft_quality(idea, scheme, max_iters=2, verbose=True, **numeric):
     """
     Draft and iteratively revise toward passing all quality checks. Model A risk
     and SHAP drivers are attached as advisory context on the final draft.
 
     Returns:
-      best_draft     - draft passing the most checks
+      best_draft     - draft passing the most checks (section headers de-duped)
       best_quality   - its check_quality() result
       history        - [(iteration, passed, total, gaps, draft), ...]
       advisory_risk  - {risk, relative_to_base, text_risk, risk_words} (not optimised)
@@ -164,6 +180,11 @@ def improve_draft_quality(idea, scheme, max_iters=2, verbose=True, **numeric):
         key = (q["content_passed"], q["passed"])
         if key > best_key:
             best_key, best_draft, best_q = key, draft, q
+
+    # Clean up any duplicated 'Concept:' / 'Objectives:' headers the 3B reviser
+    # may have left, then re-check so the reported quality matches the final text.
+    best_draft = _dedupe_section_headers(best_draft)
+    best_q = check_quality(best_draft)
 
     # Advisory risk on the chosen draft. Reported, not optimised.
     s = score_proposal(best_draft, scheme, **numeric)
