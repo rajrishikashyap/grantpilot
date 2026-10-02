@@ -1,0 +1,14 @@
+# Keep the image lean and the build fast: exclude everything the running API
+# does not need. The pipeline uses the trained models and the Chroma index at
+# runtime, not the raw CSVs, the notebooks, the tests, or the frontend.
+.git/
+data/raw/
+notebooks/
+frontend/
+eval/
+**/__pycache__/
+*.pyc
+*.ipynb
+*.joblib.bak
+.vscode/
+.idea/
