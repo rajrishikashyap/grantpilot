@@ -1,0 +1,229 @@
+{
+  "total": 35104,
+  "by_scheme": [
+    {
+      "scheme": "MSCA-IF",
+      "count": 5004
+    },
+    {
+      "scheme": "RIA",
+      "count": 4434
+    },
+    {
+      "scheme": "SME-1",
+      "count": 4190
+    },
+    {
+      "scheme": "MSCA-IF-EF-ST",
+      "count": 3762
+    },
+    {
+      "scheme": "CSA",
+      "count": 2857
+    },
+    {
+      "scheme": "ERC-STG",
+      "count": 2749
+    },
+    {
+      "scheme": "ERC-COG",
+      "count": 2237
+    },
+    {
+      "scheme": "IA",
+      "count": 2061
+    },
+    {
+      "scheme": "ERC-ADG",
+      "count": 1571
+    },
+    {
+      "scheme": "SME-2",
+      "count": 1382
+    },
+    {
+      "scheme": "ERC-POC",
+      "count": 964
+    },
+    {
+      "scheme": "MSCA-ITN",
+      "count": 638
+    }
+  ],
+  "status": {
+    "CLOSED": 30148,
+    "SIGNED": 2837,
+    "TERMINATED": 2119
+  },
+  "failure_rate_by_scheme": [
+    {
+      "scheme": "MSCA-IF",
+      "rate": 0.3715,
+      "n": 4961
+    },
+    {
+      "scheme": "SME-2",
+      "rate": 0.0399,
+      "n": 1379
+    },
+    {
+      "scheme": "ERC-STG",
+      "rate": 0.0282,
+      "n": 2059
+    },
+    {
+      "scheme": "MSCA-RISE",
+      "rate": 0.024,
+      "n": 499
+    },
+    {
+      "scheme": "ERC-COG",
+      "rate": 0.0232,
+      "n": 1552
+    },
+    {
+      "scheme": "IA",
+      "rate": 0.0177,
+      "n": 1917
+    },
+    {
+      "scheme": "ERC-ADG",
+      "rate": 0.0162,
+      "n": 1049
+    },
+    {
+      "scheme": "MSCA-COFUND",
+      "rate": 0.0144,
+      "n": 139
+    },
+    {
+      "scheme": "ERC-POC",
+      "rate": 0.0083,
+      "n": 964
+    },
+    {
+      "scheme": "CSA",
+      "rate": 0.0075,
+      "n": 2793
+    },
+    {
+      "scheme": "RIA",
+      "rate": 0.0041,
+      "n": 4097
+    },
+    {
+      "scheme": "MSCA-ITN",
+      "rate": 0.0035,
+      "n": 573
+    }
+  ],
+  "median_budget_by_scheme": [
+    {
+      "scheme": "IA",
+      "median_eur": 4984260,
+      "n": 2061
+    },
+    {
+      "scheme": "RIA",
+      "median_eur": 4447523,
+      "n": 4434
+    },
+    {
+      "scheme": "MSCA-ITN",
+      "median_eur": 3845728,
+      "n": 638
+    },
+    {
+      "scheme": "MSCA-ITN-ETN",
+      "median_eur": 3804639,
+      "n": 303
+    },
+    {
+      "scheme": "ERC-ADG",
+      "median_eur": 2490000,
+      "n": 1571
+    },
+    {
+      "scheme": "MSCA-COFUND",
+      "median_eur": 2182200,
+      "n": 212
+    },
+    {
+      "scheme": "ERC-COG",
+      "median_eur": 1996581,
+      "n": 2237
+    },
+    {
+      "scheme": "SME-2",
+      "median_eur": 1699253,
+      "n": 1382
+    },
+    {
+      "scheme": "ERC-STG",
+      "median_eur": 1499070,
+      "n": 2749
+    },
+    {
+      "scheme": "CSA",
+      "median_eur": 899600,
+      "n": 2857
+    },
+    {
+      "scheme": "MSCA-RISE",
+      "median_eur": 837200,
+      "n": 580
+    },
+    {
+      "scheme": "CS2-IA",
+      "median_eur": 684990,
+      "n": 178
+    }
+  ],
+  "budget_histogram": {
+    "bin_edges_log10": [
+      3.498,
+      3.765,
+      4.032,
+      4.298,
+      4.565,
+      4.832,
+      5.098,
+      5.365,
+      5.632,
+      5.898,
+      6.165,
+      6.432,
+      6.698,
+      6.965,
+      7.232,
+      7.498,
+      7.765,
+      8.032,
+      8.298,
+      8.565,
+      8.832
+    ],
+    "counts": [
+      2,
+      11,
+      37,
+      32,
+      4369,
+      519,
+      10016,
+      1426,
+      759,
+      2459,
+      8502,
+      3769,
+      2237,
+      731,
+      181,
+      27,
+      18,
+      8,
+      0,
+      1
+    ]
+  }
+}
