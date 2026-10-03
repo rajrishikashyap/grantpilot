@@ -38,7 +38,7 @@ export default function GrantPilotSidebar({ sidebarOpen, setSidebarOpen }) {
           </div>
 
           <Item to="/" end label="Assess" icon={icons.assess} />
-          <Item to="/analytics" label="Mosaic demo" icon={icons.chart} />
+          <Item to="/analytics" label="Analytics" icon={icons.chart} />
 
           <a
             href="https://github.com/rajrishikashyap/grantpilot"

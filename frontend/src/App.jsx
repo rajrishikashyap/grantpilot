@@ -11,7 +11,7 @@ import './css/style.css';
 import './charts/ChartjsConfig';
 
 // Import pages
-import Dashboard from './pages/Dashboard';
+import Analytics from './pages/Analytics';
 
 function App() {
 
@@ -27,7 +27,7 @@ function App() {
     <>
       <Routes>
         <Route exact path="/" element={<GrantPilot />} />
-        <Route path="/analytics" element={<Dashboard />} />
+        <Route path="/analytics" element={<Analytics />} />
       </Routes>
     </>
   );

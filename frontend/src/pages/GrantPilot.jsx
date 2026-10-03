@@ -14,7 +14,7 @@ import Header from "../partials/Header";
 
 import ProposalForm from "../grantpilot/ProposalForm";
 import { api } from "../grantpilot/api";
-import { Card, Verdict, Checklist, RiskBars, Stat } from "../grantpilot/components";
+import { Card, Verdict, Checklist, RiskBars, Stat, GrantResults, SearchSkeleton, AssessmentSkeleton, Spinner, DraftView } from "../grantpilot/components";
 
 export default function GrantPilot() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -27,7 +27,7 @@ export default function GrantPilot() {
   const [error, setError] = useState(null);
 
   const [searchQuery, setSearchQuery] = useState("drone crop disease detection");
-  const [searchOut, setSearchOut] = useState({ text: null, loading: false });
+  const [searchOut, setSearchOut] = useState({ results: null, loading: false, error: null });
 
   const quickCheck = async (p) => {
     setError(null);
@@ -68,12 +68,12 @@ export default function GrantPilot() {
   };
 
   const doSearch = async () => {
-    setSearchOut({ text: null, loading: true });
+    setSearchOut({ results: null, loading: true, error: null });
     try {
       const r = await api.search({ query: searchQuery, k: 5 });
-      setSearchOut({ text: r.results, loading: false });
+      setSearchOut({ results: r.results, loading: false, error: null });
     } catch (err) {
-      setSearchOut({ text: "Error: " + err.message, loading: false });
+      setSearchOut({ results: null, loading: false, error: err.message });
     }
   };
 
@@ -108,6 +108,19 @@ export default function GrantPilot() {
               )}
             </AnimatePresence>
 
+            <AnimatePresence>
+              {loadingAssess && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-6 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400 px-4 py-3 text-sm flex items-center gap-2"
+                >
+                  <Spinner /> Drafting and reviewing with the local model. This takes a moment.
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="grid grid-cols-12 gap-6">
               {/* Input */}
               <ProposalForm
@@ -118,7 +131,7 @@ export default function GrantPilot() {
               />
 
               {/* Eligibility */}
-              <Card title="Eligibility" span="xl:col-span-4">
+              <Card title="Eligibility" span="xl:col-span-4" delay={0.05}>
                 {elig ? (
                   <div className="space-y-3">
                     <Verdict value={elig.verdict} />
@@ -132,7 +145,7 @@ export default function GrantPilot() {
               </Card>
 
               {/* Budget */}
-              <Card title="Budget" span="xl:col-span-4">
+              <Card title="Budget" span="xl:col-span-4" delay={0.1}>
                 {budget ? (
                   budget.scored ? (
                     <div className="space-y-3">
@@ -154,11 +167,14 @@ export default function GrantPilot() {
                 )}
               </Card>
 
+              {/* Skeleton panels while the assessment is running */}
+              {loadingAssess && <AssessmentSkeleton />}
+
               {/* Assessment panels appear after a full assessment */}
               {report && !report.gated && (
                 <>
                   {/* Quality */}
-                  <Card title="Quality review" span="xl:col-span-4">
+                  <Card title="Quality review" span="xl:col-span-4" delay={0}>
                     <div className="mb-3 text-sm text-gray-500 dark:text-gray-400">
                       {report.quality.passed}/{report.quality.total} checks passed
                     </div>
@@ -166,7 +182,7 @@ export default function GrantPilot() {
                   </Card>
 
                   {/* Advisory risk */}
-                  <Card title="Post-award risk (advisory)" span="xl:col-span-4">
+                  <Card title="Post-award risk (advisory)" span="xl:col-span-4" delay={0.08}>
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
                         <Verdict value={report.advisory_risk.band} />
@@ -189,10 +205,8 @@ export default function GrantPilot() {
                   </Card>
 
                   {/* Draft */}
-                  <Card title="Drafted section" span="xl:col-span-8" className="col-span-full">
-                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-                      {report.quality.final_draft}
-                    </pre>
+                  <Card title="Drafted section" span="xl:col-span-8" className="col-span-full" delay={0.16}>
+                    <DraftView text={report.quality.final_draft} />
                   </Card>
                 </>
               )}
@@ -204,7 +218,7 @@ export default function GrantPilot() {
               )}
 
               {/* Precedent search (independent) */}
-              <Card title="Precedent search" span="xl:col-span-4" className="col-span-full">
+              <Card title="Precedent search" span="xl:col-span-4" className="col-span-full" delay={0.05}>
                 <div className="flex gap-2 mb-4">
                   <input
                     className="flex-1 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 text-sm px-3 py-2 text-gray-800 dark:text-gray-100 focus:ring-violet-500 focus:border-violet-500"
@@ -221,11 +235,11 @@ export default function GrantPilot() {
                     {searchOut.loading ? "..." : "Search"}
                   </button>
                 </div>
-                {searchOut.text && (
-                  <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-gray-600 dark:text-gray-400 max-h-80 overflow-y-auto">
-                    {searchOut.text}
-                  </pre>
+                {searchOut.loading && <SearchSkeleton />}
+                {searchOut.error && (
+                  <p className="text-sm text-red-500">{searchOut.error}</p>
                 )}
+                {searchOut.results && <GrantResults results={searchOut.results} />}
               </Card>
             </div>
           </div>
